@@ -1,33 +1,40 @@
 
-function drawAxis(grid) {
+function drawAxis() {
     CONTEXT.lineWidth = 1;
-    CONTEXT.strokeStyle = '#000';
-    CONTEXT.beginPath();
-    CONTEXT.moveTo(0, HEIGHT/2);
-    CONTEXT.lineTo(WIDTH, HEIGHT/2);
-    CONTEXT.stroke();
+    CONTEXT.strokeStyle = '#494949';
 
-    const count = HEIGHT / 2 / (grid * scaleY);
+    // Définir l'intervalle entre les lignes de la grille
+    const numberOfGridLines = 4;
+    const gridInterval = HEIGHT / numberOfGridLines;
 
-    CONTEXT.strokeStyle = '#bbb';
-    for (let i=1; i<count; i++){
+    for (let i = 1; i < numberOfGridLines; i++) {  // i commence à 1 et se termine à 3 pour dessiner trois lignes
+        const yPos = i * gridInterval;
+
+        // Vérifiez si i est égal à numberOfGridLines/ 2 (ligne du milieu)
+        if (i === numberOfGridLines / 2) {
+            CONTEXT.lineWidth = 2;
+            CONTEXT.strokeStyle = '#000';  // Couleur plus foncée pour l'axe du milieu
+        } else {
+            CONTEXT.lineWidth = 1;
+            CONTEXT.strokeStyle = '#bbb';  // Couleur plus claire pour les autres axes
+        }
+
         CONTEXT.beginPath();
-        CONTEXT.moveTo(0, HEIGHT/2-i*grid*scaleY);
-        CONTEXT.lineTo(WIDTH, HEIGHT/2-i*grid*scaleY);
-        CONTEXT.stroke();
-
-        CONTEXT.beginPath();
-        CONTEXT.moveTo(0, HEIGHT/2+i*grid*scaleY);
-        CONTEXT.lineTo(WIDTH, HEIGHT/2+i*grid*scaleY);
+        CONTEXT.moveTo(0, yPos);
+        CONTEXT.lineTo(WIDTH, yPos);
         CONTEXT.stroke();
     }
 }
 
 function drawGraph(samples, color, scaleX, scaleY) {
     CONTEXT.save();
-    CONTEXT.translate(0, HEIGHT/3);
+
+    // Inverser l'axe des ordonnées et ajuster l'échelle
+    CONTEXT.transform(1, 0, 0, -1, 0, HEIGHT);
 
     CONTEXT.strokeStyle = color;
+    CONTEXT.lineWidth = 3;
+
     CONTEXT.beginPath();
     const len = samples.length;
     CONTEXT.moveTo(0, samples[0] * scaleY);
@@ -38,6 +45,7 @@ function drawGraph(samples, color, scaleX, scaleY) {
 
     CONTEXT.restore();
 }
+
 
 function drawLegend() {
     const scale = 2;

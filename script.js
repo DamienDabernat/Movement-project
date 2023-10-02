@@ -9,7 +9,7 @@ const accel_samples = {};
 const gyro_samples = {};
 
 const scaleX = WIDTH / SAMPLES_COUNT;
-const scaleY = 150;
+const scaleY = HEIGHT;
 
 
 let isRefresh = true;
@@ -30,6 +30,7 @@ if (!window.DeviceMotionEvent) {
 
   window.addEventListener("devicemotion",  (event) => {
     doSample(event, selectedMode);
+    draw(event)
   }, false);
 
   document.getElementById('pause').addEventListener("click", function(ev){
@@ -72,7 +73,7 @@ function tick() {
   CONTEXT.fillStyle = '#eee';
   CONTEXT.fillRect(0, 0, WIDTH, HEIGHT);
 
-  drawAxis(0.5);
+  drawAxis();
 
   if(selectedMode === Mode.accelerometer || selectedMode === Mode.both) {
     drawGraph(accel_samples.x, COLORS.ACCEL.x, scaleX, scaleY);
@@ -89,23 +90,13 @@ function tick() {
   drawLegend();
 }
 
-
-
-
-
-//--------
+//--- Drawing canvas
 
 const drawingCanvas = document.getElementById('drawingCanvas');
 const drawingContext = drawingCanvas.getContext('2d');
 
 let lastX = drawingCanvas.width / 2;
 let lastY = drawingCanvas.height / 2;
-
-if (!window.DeviceMotionEvent) {
-  document.getElementById('error').innerHTML = 'Device motion API not supported';
-} else {
-  window.addEventListener("devicemotion", draw, false);
-}
 
 function draw(event) {
   const accel = event.accelerationIncludingGravity;
@@ -122,14 +113,13 @@ function draw(event) {
   drawingContext.beginPath();
   drawingContext.moveTo(lastX, lastY);
   drawingContext.lineTo(newX, newY);
+  drawingContext.lineWidth = 4;
+  drawingContext.strokeStyle = '#000d5d';
   drawingContext.stroke();
 
   // Mettre à jour la dernière position pour le prochain dessin
   lastX = newX;
   lastY = newY;
-}
 
-// Optionnel : Ajouter un bouton pour réinitialiser le dessin
-document.getElementById('reset').addEventListener("click", function() {
-  drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-});
+  // drawingContext.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); // Effacer le canvas
+}

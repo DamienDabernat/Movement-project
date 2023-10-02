@@ -31,13 +31,11 @@ body {
   color: red;
 }
 #canvas {
-  width: 100vw;
-  height: 50vh;
-  border: black 1px solid;
+  width: 100%;
+  border: black 2px solid;
 }
 
 #drawingCanvas {
-  width: 100vw;
-  height: 50vh;
-  border: black 1px solid;
+  width: 100%;
+  border: black 2px solid;
 }
