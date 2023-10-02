@@ -1,0 +1,43 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+#header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+}
+
+.message {
+  margin-bottom: 20px;
+}
+
+#pause {
+  width: 200px;
+  height: 50px;
+  background-color: blanchedalmond;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+#error {
+  color: red;
+}
+#canvas {
+  width: 100vw;
+  height: 50vh;
+  border: black 1px solid;
+}
+
+#drawingCanvas {
+  width: 100vw;
+  height: 50vh;
+  border: black 1px solid;
+}
