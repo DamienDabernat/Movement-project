@@ -11,7 +11,6 @@ const gyro_samples = {};
 const scaleX = WIDTH / SAMPLES_COUNT;
 const scaleY = HEIGHT;
 
-
 let isRefresh = true;
 
 accel_samples.x = getInitArr(SAMPLES_COUNT);
@@ -23,43 +22,21 @@ gyro_samples.y = getInitArr(SAMPLES_COUNT);
 gyro_samples.z = getInitArr(SAMPLES_COUNT);
 
 if (!window.DeviceMotionEvent) {
-
   document.getElementById('error').innerHTML = 'Device motion API not supported';
-
 } else {
 
-  if(iOS()) {
-    document.getElementById('safari').addEventListener("click", async function (ev) {
-      document.getElementById('safari').style.display="none"
-      if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
-        const permissionState = await DeviceOrientationEvent.requestPermission();
-        if (permissionState === "granted") {
-          window.addEventListener("devicemotion", (event) => {
-            doSample(event, selectedMode);
-            draw(event)
-          }, false);
-        } else {
-          // Permission denied
-          document.getElementById('error').innerHTML = 'Permission denied';
-        }
-      }
-    });
-  } else {
-    //hide safari button
-    document.getElementById('safari').style.display="none"
-    window.addEventListener("devicemotion",  (event) => {
-      doSample(event, selectedMode);
-      draw(event)
-      //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
-    }, false);
-  }
+  iOSRequestPermission();
 
+  window.addEventListener("devicemotion",  (event) => {
+    doSample(event, selectedMode);
+    draw(event)
+    //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
+  }, false);
 
   document.getElementById('pause').addEventListener("click", function(ev){
     isRefresh = !isRefresh;
     document.getElementById('error').innerHTML = (isRefresh ? '' : 'Paused');
   });
-
 
   document.getElementById("canvas").addEventListener("click", function(ev){
     selectedMode = (selectedMode + 1) % 3;

@@ -74,7 +74,7 @@ function shift(arr, datum) {
     return ret;
 }
 
-function iOS() {
+function is_iOS() {
     return [
             'iPad Simulator',
             'iPhone Simulator',
@@ -85,4 +85,23 @@ function iOS() {
         ].includes(navigator.platform)
         // iPad on iOS 13 detection
         || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+}
+
+function iOSRequestPermission() {
+    if(is_iOS()) {
+        document.getElementById('safari').addEventListener("click", async function (ev) {
+            document.getElementById('safari').style.display="none"
+            const audio = new Audio('button_clic.mp3');
+            await audio.play();
+            if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
+                const permissionState = await DeviceOrientationEvent.requestPermission();
+                if (permissionState !== "granted") {
+                    // Permission denied
+                    document.getElementById('error').innerHTML = 'Permission denied';
+                }
+            }
+        });
+    } else {
+        document.getElementById('safari').style.display="none" //hide safari button
+    }
 }
