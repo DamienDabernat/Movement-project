@@ -91,6 +91,7 @@ function iOSRequestPermission() {
     if(is_iOS()) {
         document.getElementById('safari').addEventListener("click", async function (ev) {
             document.getElementById('safari').style.display="none"
+            soundEffect = new Audio();
             soundEffect.src = 'button_clic.mp3';
             await soundEffect.play();
             if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
@@ -102,6 +103,7 @@ function iOSRequestPermission() {
             }
         });
     } else {
+        soundEffect = new Audio();
         document.getElementById('safari').style.display="none" //hide safari button
     }
 }

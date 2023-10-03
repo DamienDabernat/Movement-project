@@ -21,7 +21,7 @@ gyro_samples.x = getInitArr(SAMPLES_COUNT);
 gyro_samples.y = getInitArr(SAMPLES_COUNT);
 gyro_samples.z = getInitArr(SAMPLES_COUNT);
 
-const soundEffect = new Audio();
+let soundEffect = undefined;
 
 if (!window.DeviceMotionEvent) {
   document.getElementById('error').innerHTML = 'Device motion API not supported';
