@@ -46,3 +46,15 @@ body {
   justify-content: center;
   align-items: center;
 }
+
+#safari {
+  width: 100%;
+  height: 280px;
+  border: black 2px solid;
+  background-color: bisque;
+  font-size: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

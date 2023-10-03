@@ -28,11 +28,32 @@ if (!window.DeviceMotionEvent) {
 
 } else {
 
-  window.addEventListener("devicemotion",  (event) => {
-    doSample(event, selectedMode);
-    draw(event)
-    //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
-  }, false);
+  if(iOS()) {
+    document.getElementById('safari').addEventListener("click", async function (ev) {
+      document.getElementById('safari').style.display="none"
+      if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
+        const permissionState = await DeviceOrientationEvent.requestPermission();
+        if (permissionState === "granted") {
+          window.addEventListener("devicemotion", (event) => {
+            doSample(event, selectedMode);
+            draw(event)
+          }, false);
+        } else {
+          // Permission denied
+          document.getElementById('error').innerHTML = 'Permission denied';
+        }
+      }
+    });
+  } else {
+    //hide safari button
+    document.getElementById('safari').style.display="none"
+    window.addEventListener("devicemotion",  (event) => {
+      doSample(event, selectedMode);
+      draw(event)
+      //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
+    }, false);
+  }
+
 
   document.getElementById('pause').addEventListener("click", function(ev){
     isRefresh = !isRefresh;
