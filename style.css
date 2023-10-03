@@ -30,12 +30,19 @@ body {
 #error {
   color: red;
 }
-#canvas {
+#canvas, #drawingCanvas, #compassCanvas {
   width: 100%;
   border: black 2px solid;
 }
 
-#drawingCanvas {
+#gameButton {
   width: 100%;
+  height: 480px;
   border: black 2px solid;
+  background-color: bisque;
+  font-size: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }

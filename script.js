@@ -31,6 +31,7 @@ if (!window.DeviceMotionEvent) {
   window.addEventListener("devicemotion",  (event) => {
     doSample(event, selectedMode);
     draw(event)
+    //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
   }, false);
 
   document.getElementById('pause').addEventListener("click", function(ev){
@@ -65,11 +66,10 @@ function doSample(event, mode) {
 }
 
 function tick() {
-  window.requestAnimationFrame(tick);
-
   if (!isRefresh){
     return;
   }
+
   CONTEXT.fillStyle = '#eee';
   CONTEXT.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -88,7 +88,10 @@ function tick() {
   }
 
   drawLegend();
+  window.requestAnimationFrame(tick);
 }
+window.requestAnimationFrame(tick);
+
 
 //--- Drawing canvas
 
