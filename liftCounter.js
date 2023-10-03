@@ -30,8 +30,8 @@ function handleAcceleration(event) {
 }
 
 function playSound() {
-    const audio = new Audio('game_combo.mp3');
-    audio.play();
+    soundEffect.src = 'game_combo.mp3';
+    soundEffect.play();
 }
 
 document.getElementById('gameButton').addEventListener("click", function(ev){

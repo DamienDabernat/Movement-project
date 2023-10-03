@@ -91,8 +91,8 @@ function iOSRequestPermission() {
     if(is_iOS()) {
         document.getElementById('safari').addEventListener("click", async function (ev) {
             document.getElementById('safari').style.display="none"
-            const audio = new Audio('button_clic.mp3');
-            await audio.play();
+            soundEffect.src = 'button_clic.mp3';
+            await soundEffect.play();
             if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
                 const permissionState = await DeviceOrientationEvent.requestPermission();
                 if (permissionState !== "granted") {
