@@ -110,9 +110,13 @@ let lastY = drawingCanvas.height / 2;
 function draw(event) {
   const accel = event.accelerationIncludingGravity;
 
+  // Inverser les axes sur iOS
+  const factor = is_iOS() ? -1 : 1;
+
   // Calculer la nouvelle position du pinceau en fonction de l'inclinaison
-  let newX = lastX - accel.x;
-  let newY = lastY + accel.y;
+  let newX = lastX - (accel.x * factor);
+  let newY = lastY + (accel.y * factor);
+
 
   // On s'assure que les nouvelles coordonnées sont dans les limites du canvas
   newX = Math.max(0, Math.min(newX, drawingCanvas.width));
