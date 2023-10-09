@@ -35,8 +35,8 @@ function playSound() {
 }
 
 document.getElementById('gameButton').addEventListener("click", async function (ev) {
-    const soundEffect = new Audio();
-    soundEffect.src = 'button_click.mp3';
+    soundEffect = new Audio();
+    soundEffect.src = 'button_clic.mp3';
     await soundEffect.play();
     window.addEventListener("devicemotion", handleAcceleration, true);
 });
