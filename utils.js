@@ -87,23 +87,28 @@ function is_iOS() {
         || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
 }
 
-function iOSRequestPermission() {
-    if(is_iOS()) {
-        document.getElementById('safari').addEventListener("click", async function (ev) {
-            document.getElementById('safari').style.display="none"
-            soundEffect = new Audio();
-            soundEffect.src = 'button_clic.mp3';
-            await soundEffect.play();
-            if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
-                const permissionState = await DeviceOrientationEvent.requestPermission();
-                if (permissionState !== "granted") {
-                    // Permission denied
-                    document.getElementById('error').innerHTML = 'Permission denied';
+function requestPermission() {
+    return new Promise(async (resolve, reject) => {
+        if (is_iOS()) {
+            document.getElementById('safari').addEventListener("click", async function (ev) {
+
+                if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    if (permissionState === "granted") {
+                        document.getElementById('safari').style.display = "none";  // Hide Safari button
+                        resolve();  // Permission granted
+                    } else {
+                        document.getElementById('error').innerHTML = 'Permission denied';
+                        reject(new Error('Permission denied'));
+                    }
+                } else {
+                    // DeviceOrientationEvent.requestPermission not a function
+                    reject(new Error('DeviceOrientationEvent.requestPermission is not a function'));
                 }
-            }
-        });
-    } else {
-        soundEffect = new Audio();
-        document.getElementById('safari').style.display="none" //hide safari button
-    }
+            });
+        } else {
+            document.getElementById('safari').style.display = "none";  // Hide Safari button
+            resolve();  // No need for permissions on Android, resolve immediately
+        }
+    });
 }

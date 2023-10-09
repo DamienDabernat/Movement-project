@@ -1,6 +1,6 @@
 # Projet Bouge !
 ## Introduction
-Ce projet, réalisé en JavaScript vanille sans l'utilisation de bibliothèques externes, utilise les capteurs d'accélération et de gyroscope d'un appareil mobile pour tracer des graphiques en temps réel et détecter les mouvements spécifiques tels que le levage de poids.
+Ce projet, réalisé en JavaScript vanille sans l'utilisation de bibliothèques externes, utilise les capteurs d'accélération et de gyroscope d'un téléphone pour tracer des graphiques en temps réel et détecter les mouvements spécifiques tels que le levage de poids.
 
 ## Installation
 

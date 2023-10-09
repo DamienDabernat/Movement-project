@@ -27,13 +27,19 @@ if (!window.DeviceMotionEvent) {
   document.getElementById('error').innerHTML = 'Device motion API not supported';
 } else {
 
-  iOSRequestPermission();
+  requestPermission()
+      .then(() => {
+        // Code à exécuter après avoir obtenu la permission sur iOS ou sur Android
+        window.addEventListener("devicemotion",  (event) => {
+          doSample(event, selectedMode);
+          draw(event)
+          //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
+        }, false);
+      })
+      .catch(err => {
+        console.error('An error occurred:', err);
+      });
 
-  window.addEventListener("devicemotion",  (event) => {
-    doSample(event, selectedMode);
-    draw(event)
-    //document.getElementById('values').innerHTML = JSON.stringify(normalizedData);
-  }, false);
 
   document.getElementById('pause').addEventListener("click", function(ev){
     isRefresh = !isRefresh;
