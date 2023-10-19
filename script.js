@@ -27,9 +27,8 @@ if (!window.DeviceMotionEvent) {
   document.getElementById('error').innerHTML = 'Device motion API not supported';
 } else {
 
-  requestPermission()
+  requestPermission("safari", "error")
       .then(() => {
-        // Code à exécuter après avoir obtenu la permission sur iOS ou sur Android
         window.addEventListener("devicemotion",  (event) => {
           doSample(event, selectedMode);
           draw(event)
@@ -39,7 +38,6 @@ if (!window.DeviceMotionEvent) {
       .catch(err => {
         console.error('An error occurred:', err);
       });
-
 
   document.getElementById('pause').addEventListener("click", function(ev){
     isRefresh = !isRefresh;

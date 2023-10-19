@@ -3,74 +3,257 @@
 <head>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="music.css">
 </head>
 <body>
-<div id="error"></div>
-<div id="safari">Autoriser l'accéléromètre</div>
-<script src="utils.js"></script>
-<script>
-    let osc;
-    let isPlaying = false; // Variable pour suivre l'état de l'oscillateur
-    let freq, amp;
 
-    if (!window.DeviceMotionEvent) {
-        document.getElementById('error').innerHTML = 'Device motion API not supported';
-    } else {
-        requestPermission()
-            .then(() => {
-                window.addEventListener("devicemotion", drawWithMotion, false);
-            })
-            .catch(err => {
-                console.error('An error occurred:', err);
-            });
-    }
+<div class="flex-container">
+    <div id="error"></div>
+    <div id="safari">Autoriser l'accéléromètre</div>
+    <div class="song-selector">
+        <select id="songSelect">
+            <option value="Brother John">Brother John</option>
+            <option value="Twinkle Twinkle">Twinkle Twinkle</option>
+            <option value="Happy Birthday">Happy Birthday</option>
+            <option value="Seven Nation Army">Seven Nation Army</option>
+            <option value="Free Mode">Mode libre</option>
+        </select>
+    </div>
+    <div id="canvas-container" class="canvas-container"></div>
+</div>
+
+<script src="utils.js"></script>
+<script src="partitions.js"></script>
+<script>
+    let osc, fft;
+    let isPlaying = false;
+    let freq, amp = 0;
+    let alpha = 0;
+    let calibrationOffset = null;
+    let accelZ = 0;
+
+    //const majorScale = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25];
+    //const noteNames = ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si", "Do'"];
+
+    let majorScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+    let noteNames =  ["Do",   "Ré",   "Mi",   "Fa",  "Sol",   "La",   "Si",   "Do'"];
+    let sequence = brotherJohn; // [ "Do", "Ré", "Mi", "Do", [...] ]
+
+    let currentIndex = 0;  // Indice pour suivre la note actuelle dans la séquence
+    let lastNote = null;  // Garder une trace de la dernière note jouée
+    let currentNote = null;  // Garder une trace de la note actuelle
+    let ampResetRequired = false;  // Indique si un reset de l'amplitude est requis
+
+    requestPermission("safari", "error")
+        .then(() => {
+            window.addEventListener("deviceorientation", drawWithOrientation, false);
+            window.addEventListener("devicemotion", drawWithMotion, false);
+        })
+        .catch(err => {
+            console.error('An error occurred:', err);
+        });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const songSelect = document.getElementById('songSelect');
+
+        songSelect.addEventListener('change', function() {
+            const selectedSong = songSelect.options[songSelect.selectedIndex].value;
+
+            if (selectedSong === "Free Mode") {
+                sequence = []; // Videz la séquence pour le mode libre
+            } else {
+                const songDetails = getSongDetails(selectedSong);
+
+                if (songDetails) {
+                    lastNote = null;
+                    sequence = songDetails.partition;
+                    majorScale = songDetails.notes;
+                    noteNames = songDetails.labels;
+                }
+            }
+        });
+    });
+
 
     function setup() {
-        let cnv = createCanvas(600, 600);
+        let cnv = createCanvas(windowWidth, 1000);  // createCanvas prend en compte la largeur de la fenêtre
+        cnv.parent('canvas-container');  // Attribue le parent du canvas à 'canvas-container'
         cnv.mousePressed(toggleOscillator);
-        osc = new p5.Oscillator('triangle');
+        osc = new p5.Oscillator('sine');
+        fft = new p5.FFT();
     }
 
     function draw() {
-        background(220);
-        textSize(60);
-        if(!isPlaying) {
-            text('tap to play', 20, 80);
-        } else {
-            text('tap to stop', 20, 80);
+        background(255);
+
+        let waveform = fft.waveform(); // analyze the waveform
+        beginShape();
+        strokeWeight(6);
+        stroke(37, 34, 195);
+        color(0, 255, 0, 50);
+        for (let i = 0; i < waveform.length; i++) {
+            let x = map(i, 0, waveform.length, 0, width);
+            let y = map(waveform[i], -1, 1, 200, 0);
+            vertex(x, y+700);
         }
-        text('freq: ' + freq, 20, 160);
-        text('amp: ' + amp, 20, 240);
+        endShape();
+
+
+
+        let circleDiameter = windowWidth * 0.95;
+
+        drawSemicircle(noteNames, circleDiameter, alpha - 90);
+
+        // Dessiner la ligne rouge
+        stroke(1, 1, 10);
+        strokeWeight(12);
+        line(width / 2, width / 2, width / 2, width / 3.7);
+        noStroke();
+
+        let fontSize = 40;
+        let lineSpacing = 20;
+        let textY = circleDiameter / 2 + fontSize + lineSpacing;
+        textSize(fontSize);
+
+        //textY += fontSize + lineSpacing;
+        textY += fontSize + lineSpacing;
+        text(isPlaying ? 'Top to pause (refresh to calibrate)' : 'Tap to play' , 20, textY);
+        textY += fontSize + lineSpacing;
+        //text('Rotate left to repeat the note' , 20, textY);
+        //textY += fontSize + lineSpacing;
+
+        text('Note: ' + currentNote, 20, textY);
+        textY += fontSize + lineSpacing;
+        text('Next Note: ' + sequence[currentIndex], 20, textY);
+
+        //text('alpha: ' + alpha, 20, textY);
+        //text('freq: ' + freq, 20, textY);
+        //text('amp: ' + amp, 20, textY);
+        //textY += fontSize + lineSpacing;
+        //text('Accel. Z: ' + accelZ, 20, textY);
+    }
+
+
+    function drawWithOrientation(event) {
+        if (calibrationOffset === null) {
+            calibrationOffset = event.alpha;
+        }
+
+        alpha = event.alpha - calibrationOffset + 90;
+        alpha = alpha % 360;
+        if (alpha < 0) {
+            alpha += 360;
+        }
+
+
+        // Si alpha est inférieur à 0, fixer la fréquence à la plus basse de l'échelle
+        if (alpha <= 360 && alpha > 270) {
+            freq = majorScale[majorScale.length - 1];  // Change to the highest frequency ("Do'")
+        }
+        // Si alpha est supérieur à 90, fixer la fréquence à la plus élevée de l'échelle
+        else if (alpha <= 270 && alpha > 180) {
+            freq = majorScale[0];  // Change to the lowest frequency ("Do")
+        }
+        // Sinon, mapper alpha à la plage de fréquences de l'échelle majeure
+        else {
+            // Calculer la plage de degrés pour chaque note
+            const degreePerNote = 180 / majorScale.length;
+
+            // Trouver l'indice de la note en fonction de alpha
+            let noteIndex = Math.floor((180 - alpha) / degreePerNote); // (180 - alpha) pour inverser la direction de rotation
+            noteIndex = constrain(noteIndex, 0, majorScale.length - 1);  // S'assurer que l'indice est dans les limites
+
+            // Prendre la fréquence de la note à l'indice trouvé
+            freq = majorScale[noteIndex];
+        }
+
+        let noteIndex = majorScale.indexOf(freq);
+        currentNote = noteNames[noteIndex];
+
+        if (isPlaying) {
+            if (sequence.length === 0) { // Si en mode libre
+                osc.freq(freq, 0.15);
+            } else {
+                if (currentNote === sequence[currentIndex]) {
+                    // Vérifier si la note actuelle correspond à la note suivante dans la séquence
+                    if (currentNote === lastNote && amp !== 0) {
+                        ampResetRequired = true;
+                    }
+
+                    if (!ampResetRequired) {
+                        osc.freq(freq, 0.15);
+                        currentIndex = (currentIndex + 1) % sequence.length;
+                        lastNote = currentNote;
+                    } else if (amp === 0) {
+                        ampResetRequired = false;
+                    }
+                }
+            }
+
+            osc.amp(amp, 0.1);
+        }
     }
 
     function drawWithMotion(event) {
         const accel = event.accelerationIncludingGravity;
         const factor = is_iOS() ? -1 : 1;
 
-        let newX = map(accel.x * factor, -10, 10, 50, 1000);
-        let newY = map(accel.y * factor, -10, 10, 0, 1);
+        accelZ = (-accel.z * factor).toFixed(2);
+        accelZ = map(-accel.z * factor, -10, 0, 0, 1);
 
-        console.log(newX, newY)
-
-        freq = parseFloat(constrain(newX, 50, 1000).toFixed(0));
-        amp = parseFloat(constrain(newY, 0, 1).toFixed(2));
-
-        if (isPlaying) {
-            osc.freq(freq, 0.1);
-            osc.amp(amp, 0.1);
+        if(accelZ > 0.5) {
+            accelZ = 0;
+        } else {
+            accelZ = 1;
         }
+        amp = parseFloat(constrain(accelZ, 0, 1).toFixed(2));
     }
 
-    function toggleOscillator() { // Fonction pour démarrer/arrêter l'oscillateur
+
+    function toggleOscillator() {
         if (isPlaying) {
             osc.stop();
             isPlaying = false;
         } else {
+            osc.freq(0, 0.1);
+            osc.amp(0, 0.1);
             osc.start();
             isPlaying = true;
         }
     }
+
+    function drawSemicircle(lableList, diameter, rotationAngle) {
+        let num_sections = lableList.length;
+        let theta = PI / num_sections;
+        let colors = Array.from({ length: num_sections }, (_, i) => lerpColor(color(243, 186, 118, 200), color(71, 68, 237, 200), i / (num_sections - 1)));
+
+        push();
+        translate(width / 2, width / 2);
+        rotate(radians(rotationAngle));
+
+        stroke(50, 50, 50, 50);
+        strokeWeight(6);
+        for (let i = 0; i < num_sections; i++) {
+            fill(colors[i]);
+            arc(0, 0, diameter, diameter, PI + i * theta, PI + (i + 1) * theta, PIE);
+        }
+        noStroke();
+
+        textSize(42);
+        fill(0);
+        let radial_distance = diameter * 0.3;
+
+        for (let i = 0; i < num_sections; i++) {
+            let angle = PI + i * theta + theta / 2;
+            let x = cos(angle) * radial_distance;
+            let y = sin(angle) * radial_distance;
+            textAlign(CENTER, CENTER);
+            text(lableList[i], x, y);
+        }
+
+        pop();
+    }
 </script>
+
 </body>
 </html>

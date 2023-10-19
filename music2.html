@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="error"></div>
+<div id="safari">Autoriser l'accéléromètre</div>
+<script src="utils.js"></script>
+<script>
+    let osc;
+    let isPlaying = false; // Variable pour suivre l'état de l'oscillateur
+    let freq, amp;
+
+    requestPermission("safari", "error")
+        .then(() => {
+            window.addEventListener("devicemotion", drawWithMotion, false);
+        })
+        .catch(err => {
+            console.error('An error occurred:', err);
+        });
+
+
+    function setup() {
+        let cnv = createCanvas(600, 600);
+        cnv.mousePressed(toggleOscillator);
+        osc = new p5.Oscillator('triangle');
+    }
+
+    function draw() {
+        background(220);
+        textSize(60);
+        if(!isPlaying) {
+            text('tap to play', 20, 80);
+        } else {
+            text('tap to stop', 20, 80);
+        }
+        text('freq: ' + freq, 20, 160);
+        text('amp: ' + amp, 20, 240);
+    }
+
+    function drawWithMotion(event) {
+        const accel = event.accelerationIncludingGravity;
+        const factor = is_iOS() ? -1 : 1;
+
+        let newX = map(accel.x * factor, -10, 10, 50, 1000);
+        let newY = map(accel.y * factor, -10, 10, 0, 1);
+
+        console.log(newX, newY)
+
+        freq = parseFloat(constrain(newX, 50, 1000).toFixed(0));
+        amp = parseFloat(constrain(newY, 0, 1).toFixed(2));
+
+        if (isPlaying) {
+            osc.freq(freq, 0.1);
+            osc.amp(amp, 0.1);
+        }
+    }
+
+    function toggleOscillator() { // Fonction pour démarrer/arrêter l'oscillateur
+        if (isPlaying) {
+            osc.stop();
+            isPlaying = false;
+        } else {
+            osc.start();
+            isPlaying = true;
+        }
+    }
+</script>
+</body>
+</html>

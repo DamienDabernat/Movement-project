@@ -33,6 +33,11 @@ body {
   align-items: center;
 }
 
+.notes {
+  width: 100vw;
+    height: auto;
+}
+
 #pause {
   width: 200px;
   height: 50px;

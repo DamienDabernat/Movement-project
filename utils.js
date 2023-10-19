@@ -87,28 +87,60 @@ function is_iOS() {
         || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
 }
 
-function requestPermission() {
+/**
+ * Demande la permission d'accéder aux événements d'orientation et de mouvement du dispositif.
+ * @param {string} safariButtonId - ID de l'élément du DOM qui sera cliqué pour demander la permission sous iOS.
+ * @param {string} errorElementId - ID de l'élément du DOM où les messages d'erreur seront affichés.
+ * @returns {Promise} Une promesse qui est résolue si les permissions sont accordées et rejetée sinon.
+ */
+function requestPermission(safariButtonId, errorElementId) {
     return new Promise(async (resolve, reject) => {
-        if (is_iOS()) {
-            document.getElementById('safari').addEventListener("click", async function (ev) {
+        const safariButton = document.getElementById(safariButtonId);
+        const errorElement = document.getElementById(errorElementId);
 
-                if (DeviceOrientationEvent && typeof (DeviceOrientationEvent.requestPermission) === "function") {
-                    const permissionState = await DeviceOrientationEvent.requestPermission();
-                    if (permissionState === "granted") {
-                        document.getElementById('safari').style.display = "none";  // Hide Safari button
-                        resolve();  // Permission granted
+        if (!window.DeviceMotionEvent) {
+            errorElement.innerHTML = 'Device motion API not supported';
+            reject(new Error('Device motion API not supported'));
+            return false;
+        }
+
+        if (is_iOS()) {
+            safariButton.addEventListener("click", async function (ev) {
+
+                // Fonction interne pour demander la permission pour un type d'événement donné
+                async function request(eventConstructor) {
+                    const type = eventConstructor.name;
+                    if (typeof eventConstructor.requestPermission === "function") {
+                        const permissionState = await eventConstructor.requestPermission();
+                        if (permissionState === "granted") {
+                            return true;
+                        } else {
+                            errorElement.innerHTML = `${type} permission denied`;
+                            reject(new Error(`${type} permission denied`));
+                            return false;
+                        }
                     } else {
-                        document.getElementById('error').innerHTML = 'Permission denied';
-                        reject(new Error('Permission denied'));
+                        reject(new Error(`${type}.requestPermission is not a function`));
+                        return false;
                     }
-                } else {
-                    // DeviceOrientationEvent.requestPermission not a function
-                    reject(new Error('DeviceOrientationEvent.requestPermission is not a function'));
                 }
+
+                const orientationGranted = await request(DeviceOrientationEvent);
+                if (!orientationGranted) return;
+
+                const motionGranted = await request(DeviceMotionEvent);
+                if (!motionGranted) return;
+
+                if (orientationGranted && motionGranted) {
+                    safariButton.style.display = "none";  // Hide Safari button
+                    resolve();  // Both permissions granted
+                }
+
             });
         } else {
-            document.getElementById('safari').style.display = "none";  // Hide Safari button
+            safariButton.style.display = "none";  // Hide Safari button
             resolve();  // No need for permissions on Android, resolve immediately
         }
     });
 }
+
