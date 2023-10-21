@@ -45,24 +45,6 @@ function getSongDetails(songName) {
         0.75, 0.25, 1, 1, 1, 2
     ];
 
-    const sevenNationArmy = [
-        "Mi", "Sol", "Sol", "Fa#", "Mi", "Ré", "Do",
-        "Mi", "Sol", "Sol", "Fa#", "Mi", "Ré", "Mi",
-        "Mi", "Sol", "Sol", "Fa#", "Mi", "Ré", "Do",
-        "Do", "Do", "Ré", "Mi"
-    ];
-
-    const laCucaracha = [
-        "Do", "Ré", "Mi", "Fa", "Sol",
-        "Sol", "Fa", "Mi", "Ré", "Do",
-        "Mi", "Mi", "Fa", "Sol",
-        "Sol", "Fa", "Mi", "Ré",
-        "Do", "Ré", "Mi", "Fa", "Sol",
-        "Sol", "Fa", "Mi", "Ré", "Do"
-    ];
-
-
-
     if (songName === "Brother John") {
         notes = majorScale;
         labels = noteNames;
