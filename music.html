@@ -197,8 +197,8 @@
 
                 osc.amp(0);
                 sleep(80).then(() => {
-                    osc.freq(freq, 0.1);
-                    osc.amp(1);
+                    osc.freq(freq, 0.15);
+                    osc.amp(1, 0.1);
                     // Planifier la prochaine note
                     autoPlayTimeout = setTimeout(playNote, trueRhythm);
                     currentIndex = (currentIndex + 1) % sequence.length;
