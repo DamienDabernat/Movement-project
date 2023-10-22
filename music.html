@@ -192,13 +192,13 @@
 
         async function playNote() {
             if (sequence.length > 0) { // Si une séquence est définie
-                const trueRhythm = 600 * rhythm[currentIndex];
+                const trueRhythm = 500 * rhythm[currentIndex];
                 freq = majorScale[noteNames.indexOf(sequence[currentIndex])];
 
                 osc.amp(0);
                 sleep(80).then(() => {
-                    osc.freq(freq);
-                    osc.amp(1, 0.08);
+                    osc.freq(freq, 0.1);
+                    osc.amp(1);
                     // Planifier la prochaine note
                     autoPlayTimeout = setTimeout(playNote, trueRhythm);
                     currentIndex = (currentIndex + 1) % sequence.length;
