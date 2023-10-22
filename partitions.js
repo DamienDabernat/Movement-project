@@ -1,5 +1,5 @@
 function getSongDetails(songName) {
-    let notes, labels, partition, rhythm;
+    let notes, labels, partition, rhythm, bpm = 120;
 
     const fullMajorScale = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25];
     const fullNoteNames = ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si", "Do'"];
@@ -25,9 +25,11 @@ function getSongDetails(songName) {
         1, 1, 1.25,
         1, 1, 1, 1, 1, 1.25,
         1, 1, 1, 1, 1, 1.25,
-        1, 1, 1,
-        1, 1, 1
+        0.5, 1, 1, 1,
+        0.5, 1, 1, 1
     ];
+
+    const brotherJohnBpm = 160;
 
     const twinkleTwinkle = [
         "Do", "Do", "Sol", "Sol", "La", "La", "Sol",
@@ -47,6 +49,7 @@ function getSongDetails(songName) {
         1, 1, 1, 1, 1, 1, 1
     ];
 
+    const twinkleTwinkleBpm = 110;
 
     const happyBirthday = [
         "Do", "Do", "Ré", "Do", "Fa", "Mi",
@@ -61,6 +64,8 @@ function getSongDetails(songName) {
         0.75, 0.25, 1, 1, 1, 1, 1,
         0.75, 0.25, 1, 1, 1, 2
     ];
+
+    const happyBirthdayBpm = 160;
 
     const imperialMarch = [
         "La", "La", "La",
@@ -85,16 +90,19 @@ function getSongDetails(songName) {
         labels = noteNames;
         partition = brotherJohn;
         rhythm = brotherJohnRhythm;
+        bpm = brotherJohnBpm;
     } else if (songName === "Twinkle Twinkle") {
         notes = majorScale;
         labels = noteNames;
         partition = twinkleTwinkle;
         rhythm = twinkleTwinkleRhythm;
+        bpm = twinkleTwinkleBpm;
     } else if (songName === "Happy Birthday") {
         notes = fullMajorScale;
         labels = fullNoteNames;
         partition = happyBirthday;
         rhythm = happyBirthdayRhythm;
+        bpm = happyBirthdayBpm;
     } else if (songName === "Imperial March") {
         notes = fullMajorScale;
         labels = fullNoteNames;
@@ -104,5 +112,13 @@ function getSongDetails(songName) {
         return null;
     }
 
-    return { notes : notes, labels : labels, partition : partition, rhythm: rhythm };
+    return { notes : notes, labels : labels, partition : partition, rhythm: rhythm, bpm : bpm };
+}
+
+function bpmToMilliseconds(bpm) {
+    return 60000 / bpm;
+}
+
+function bpmToSeconds(bpm) {
+    return 60 / bpm;
 }

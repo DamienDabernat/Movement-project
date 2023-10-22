@@ -59,7 +59,7 @@
     let osc, fft; // Todo use Tone.js instead of P5js oscillator
     let isPlaying = false;
     let freq, amp = 0;
-    let alpha = 0;
+    let previousAlpha, alpha = 0;
     let calibrationOffset = null;
     let accelZ = 0;
 
@@ -68,8 +68,11 @@
 
     let majorScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
     let noteNames = ["Do", "Ré", "Mi", "Fa", "Sol", "La", "Si", "Do'"];
+    let lockOctave = false;
+    let octave = 1;
     let sequence = [] // or : getSongDetails("Brother John").partition; // return : [ "Do", "Ré", "Mi", "Do", [...] ]
     let rhythm = [];
+    let bpm = 0;
 
     let currentIndex = 0;  // Indice pour suivre la note actuelle dans la séquence
     let lastNote = null;  // Garder une trace de la dernière note jouée
@@ -102,6 +105,7 @@
                     majorScale = songDetails.notes;
                     noteNames = songDetails.labels;
                     rhythm = songDetails.rhythm;
+                    bpm = songDetails.bpm;
                 }
             }
         });
@@ -119,6 +123,8 @@
         cnv.mousePressed(toggleOscillator);
         osc = new p5.Oscillator('sine');
         fft = new p5.FFT();
+        env = new p5.Env();
+        env.setRange(1, 0);  // Set amplitude range from 1 to 0
     }
 
     function draw() {
@@ -164,7 +170,7 @@
         // ---
 
         textY += circleDiameter/2 + 32 +  fontSize + lineSpacing;
-        text(isPlaying ? '' : 'Appuyer ici pour commencer', 16, textY);
+        text((isPlaying || autoPlay) ? '' : 'Appuyer ici pour commencer', 16, textY);
 
         //text('Note: ' + currentNote, 20, textY);
         //text('alpha: ' + alpha, 20, textY);
@@ -174,35 +180,28 @@
         //text('Accel. Z: ' + accelZ, 20, textY);
     }
 
-
-
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-
     function toggleAutoPlay() {
         autoPlay = !autoPlay;
 
         if(autoPlay) {
             autoPlayButton.innerHTML = "Stop";
         } else {
+            currentIndex = 0;
             autoPlayButton.innerHTML = "Auto Play";
         }
 
         async function playNote() {
             if (sequence.length > 0) { // Si une séquence est définie
-                const trueRhythm = 500 * rhythm[currentIndex];
+                const trueRhythm = bpmToMilliseconds(bpm) * rhythm[currentIndex];
                 freq = majorScale[noteNames.indexOf(sequence[currentIndex])];
+                //env.play(osc);  // Apply the envelope to the oscillator
+                env.setADSR(0.05, 0.2, 1.5, 0.2);
+                osc.freq(freq, 0.1);
+                env.play(osc);  // Apply the envelope to the oscillator
 
-                osc.amp(0);
-                sleep(80).then(() => {
-                    osc.freq(freq, 0.15);
-                    osc.amp(1, 0.1);
-                    // Planifier la prochaine note
-                    autoPlayTimeout = setTimeout(playNote, trueRhythm);
-                    currentIndex = (currentIndex + 1) % sequence.length;
-                });
+                // Planifier la prochaine note
+                autoPlayTimeout = setTimeout(playNote, trueRhythm);
+                currentIndex = (currentIndex + 1) % sequence.length;
             }
         }
 
@@ -230,11 +229,21 @@
 
         if (!autoPlay) { //Change the frequency based on the alpha value
             // Si alpha est inférieur à 0, fixer la fréquence à la plus basse de l'échelle
-            if (alpha <= 360 && alpha > 270) {
+            if (alpha <= 360 && alpha > 275) {
+                lockOctave = false;
                 freq = majorScale[majorScale.length - 1];  // Change to the highest frequency ("Do'")
             }
+            else if(alpha <= 275 && alpha >= 265 && !lockOctave) {
+                if(previousAlpha >= alpha) {
+                    octave = octave * 2;
+                } else if(previousAlpha < alpha) {
+                    octave = octave / 2;
+                }
+                lockOctave = true;
+            }
             // Si alpha est supérieur à 90, fixer la fréquence à la plus élevée de l'échelle
-            else if (alpha <= 270 && alpha > 180) {
+            else if (alpha < 265 && alpha > 180) {
+                lockOctave = false;
                 freq = majorScale[0];  // Change to the lowest frequency ("Do")
             }
             // Sinon, mapper alpha à la plage de fréquences de l'échelle majeure
@@ -250,31 +259,33 @@
                 freq = majorScale[noteIndex];
             }
         }
+        previousAlpha = alpha;
 
         let noteIndex = majorScale.indexOf(freq);
+
         currentNote = noteNames[noteIndex];
 
         if (isPlaying) {
-            if (sequence.length === 0) { // Si en mode libre
-                osc.freq(freq, 0.15);
-            } else {
-                if (currentNote === sequence[currentIndex]) {
-                    // Vérifier si la note actuelle correspond à la note suivante dans la séquence
-                    if (currentNote === lastNote && amp !== 0) {
-                        ampResetRequired = true;
-                    }
-
-                    if (!ampResetRequired) {
-                        osc.freq(freq, 0.15);
-                        currentIndex = (currentIndex + 1) % sequence.length;
-                        lastNote = currentNote;
-                    } else if (amp === 0) {
-                        ampResetRequired = false;
-                    }
+            if (sequence.length === 0 && currentNote !== lastNote) { // Si en mode libre
+                osc.freq(freq * octave, 0.15);
+                env.play(osc);
+                lastNote = currentNote;
+            } else if (currentNote === sequence[currentIndex]) {
+                // Vérifier si la note actuelle correspond à la note suivante dans la séquence
+                if (currentNote === lastNote && amp !== 0) {
+                    ampResetRequired = true;
                 }
-            }
 
-            osc.amp(amp, 0.1);
+                if (!ampResetRequired) {
+                    osc.freq(freq, 0.15);
+                    currentIndex = (currentIndex + 1) % sequence.length;
+                    lastNote = currentNote;
+                } else if (amp === 0) {
+                    ampResetRequired = false;
+                }
+            } else if (sequence.length !== 0) { // Si nous ne sommes pas en mode libre
+                osc.amp(amp, 0.1);
+            }
         }
     }
 
@@ -299,8 +310,6 @@
             osc.stop();
             isPlaying = false;
         } else {
-            osc.freq(0, 0.1);
-            osc.amp(0, 0.1);
             osc.start();
             isPlaying = true;
         }
