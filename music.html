@@ -107,6 +107,9 @@
         });
     });
 
+    // Écouteur d'événements au bouton auto-play
+    const autoPlayButton = document.getElementById('autoPlayButton');
+    autoPlayButton.addEventListener('click', toggleAutoPlay);
 
     function setup() {
         let cnv = createCanvas(windowWidth, windowWidth);  // createCanvas prend en compte la largeur de la fenêtre
@@ -116,10 +119,6 @@
         cnv.mousePressed(toggleOscillator);
         osc = new p5.Oscillator('sine');
         fft = new p5.FFT();
-
-        // Écouteur d'événements au bouton auto-play
-        const autoPlayButton = document.getElementById('autoPlayButton');
-        autoPlayButton.addEventListener('click', toggleAutoPlay);
     }
 
     function draw() {
@@ -184,6 +183,12 @@
 
     function toggleAutoPlay() {
         autoPlay = !autoPlay;
+
+        if(autoPlay) {
+            autoPlayButton.innerHTML = "Stop";
+        } else {
+            autoPlayButton.innerHTML = "Auto Play";
+        }
 
         async function playNote() {
             if (sequence.length > 0) { // Si une séquence est définie

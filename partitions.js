@@ -104,5 +104,5 @@ function getSongDetails(songName) {
         return null;
     }
 
-    return { notes : notes, labels : labels, partition : partition, rhythm: happyBirthdayRhythm };
+    return { notes : notes, labels : labels, partition : partition, rhythm: rhythm };
 }
