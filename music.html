@@ -22,6 +22,7 @@
             <option value="Brother John">Brother John</option>
             <option value="Twinkle Twinkle">Twinkle Twinkle</option>
             <option value="Happy Birthday">Happy Birthday</option>
+            <option value="Imperial March">Imperial March</option>
         </select>
     </div>
     <div id="canvas-parent"></div>
@@ -55,7 +56,7 @@
 <script src="utils.js"></script>
 <script src="partitions.js"></script>
 <script>
-    let osc, fft;
+    let osc, fft; // Todo use Tone.js instead of P5js oscillator
     let isPlaying = false;
     let freq, amp = 0;
     let alpha = 0;
@@ -63,14 +64,11 @@
     let accelZ = 0;
 
     let autoPlay = false;
-    let autoPlayInterval;
-
-    //const majorScale = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88, 523.25];
-    //const noteNames = ["Do", "Do#", "Ré", "Ré#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si", "Do'"];
+    let autoPlayTimeout;
 
     let majorScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
     let noteNames = ["Do", "Ré", "Mi", "Fa", "Sol", "La", "Si", "Do'"];
-    let sequence = getSongDetails("Brother John").partition; // [ "Do", "Ré", "Mi", "Do", [...] ]
+    let sequence = [] // or : getSongDetails("Brother John").partition; // return : [ "Do", "Ré", "Mi", "Do", [...] ]
     let rhythm = [];
 
     let currentIndex = 0;  // Indice pour suivre la note actuelle dans la séquence
@@ -86,19 +84,6 @@
         .catch(err => {
             console.error('An error occurred:', err);
         });
-
-
-    function scaleCanvas() {
-       /* const canvas = document.getElementById('myCanvas');
-        const scale = window.innerWidth / canvas.offsetWidth;
-        console.log(scale);
-        canvas.style.transformOrigin = '0 0';
-        canvas.style.transform = 'scale(' + scale + ')';*/
-    }
-
-
-    // Écouteur d'événements pour ajuster la mise à l'échelle chaque fois que la fenêtre est redimensionnée
-    window.addEventListener('resize', scaleCanvas, false);
 
     document.addEventListener("DOMContentLoaded", function () {
         const songSelect = document.getElementById('songSelect');
@@ -132,16 +117,15 @@
         osc = new p5.Oscillator('sine');
         fft = new p5.FFT();
 
-        scaleCanvas();
-
         // Écouteur d'événements au bouton auto-play
-        //const autoPlayButton = document.getElementById('autoPlayButton');
-        //autoPlayButton.addEventListener('click', toggleAutoPlay);
+        const autoPlayButton = document.getElementById('autoPlayButton');
+        autoPlayButton.addEventListener('click', toggleAutoPlay);
     }
 
     function draw() {
         background(255);
 
+        // --- Draw waveform
         let waveform = fft.waveform(); // analyze the waveform
         beginShape();
         strokeWeight(3);
@@ -153,10 +137,9 @@
             vertex(x, y + 260);
         }
         endShape();
-
-
         // ---
 
+        // --- Next note
         noStroke();
         let fontSize = 24;
         let lineSpacing = 20;
@@ -167,13 +150,14 @@
         textStyle(BOLD);
         text(sequence[currentIndex], width/2 - 16, textY);
         textStyle(NORMAL);
-
         // ---
 
+        // --- Note's circle
         let circleDiameter = windowWidth * 0.95;
         drawSemicircle(noteNames, circleDiameter, alpha - 90, 0, 50);
+        // ---
 
-        // Dessiner la ligne rouge
+        // Vertical guide line
         stroke(10, 10, 80);
         strokeWeight(6);
         line(width / 2, width / 2 + 50, width / 2, width / 3.7 + 50);
@@ -191,7 +175,7 @@
         //text('Accel. Z: ' + accelZ, 20, textY);
     }
 
-    let autoPlayTimeout;
+
 
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
