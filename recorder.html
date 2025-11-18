@@ -75,9 +75,9 @@
         <label>
             Mode
             <select id="modeSelect">
-                <option value="accelerometer" selected>Accelerometer</option>
+                <option value="accelerometer">Accelerometer</option>
                 <option value="gyroscope">Gyroscope</option>
-                <option value="both">Both</option>
+                <option value="both" selected>Both (recommended)</option>
             </select>
         </label>
 
@@ -86,17 +86,24 @@
             <input type="number" id="durationInput" min="1" step="1" placeholder="Leave empty for manual stop" />
         </label>
 
+        <label>
+            Segment duration (seconds)
+            <input type="number" id="segmentDurationInput" min="1" step="1" value="5" />
+        </label>
+
         <div id="sampleCount">Samples: 0</div>
+        <div id="segmentInfo">Current segment: 0 | Segments completed: 0</div>
 
         <div id="controls">
             <button id="startRecording" disabled>Start recording</button>
             <button id="stopRecording" disabled>Stop recording</button>
-            <button id="downloadCsv" disabled>Download last CSV</button>
+            <button id="downloadZip" disabled>Download ZIP</button>
         </div>
 
         <div id="safariRecorder">Allow motion sensors</div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-0ZopN1m0w6c4tj4n1vCtbmZh9rqx8uxFazc2DSES0finBmMOPqlmkVQKu0kUQeFk/gQq/i323iDL49myI7u7Vg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="utils.js"></script>
     <script src="recorder.js"></script>
 </body>
