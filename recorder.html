@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Motion Recorder</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        body {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 16px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        #recorderContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-weight: bold;
+        }
+
+        input, select, button {
+            padding: 8px;
+            font-size: 1rem;
+        }
+
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        #recorderStatus {
+            min-height: 1.5em;
+        }
+
+        #recorderError {
+            color: #c00;
+            min-height: 1.5em;
+        }
+
+        #sampleCount {
+            font-weight: bold;
+        }
+
+        #safariRecorder {
+            border: 1px solid #333;
+            display: inline-block;
+            padding: 8px 12px;
+            cursor: pointer;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="recorderContainer">
+        <h1>Motion Recorder</h1>
+        <p><a href="index.html">← Back to Bouge !</a></p>
+
+        <div id="recorderStatus">Initializing…</div>
+        <div id="recorderError"></div>
+
+        <label>
+            Activity label
+            <input type="text" id="activityLabel" placeholder="e.g. walking" />
+        </label>
+
+        <label>
+            Mode
+            <select id="modeSelect">
+                <option value="accelerometer" selected>Accelerometer</option>
+                <option value="gyroscope">Gyroscope</option>
+                <option value="both">Both</option>
+            </select>
+        </label>
+
+        <label>
+            Duration (seconds, optional)
+            <input type="number" id="durationInput" min="1" step="1" placeholder="Leave empty for manual stop" />
+        </label>
+
+        <div id="sampleCount">Samples: 0</div>
+
+        <div id="controls">
+            <button id="startRecording" disabled>Start recording</button>
+            <button id="stopRecording" disabled>Stop recording</button>
+            <button id="downloadCsv" disabled>Download last CSV</button>
+        </div>
+
+        <div id="safariRecorder">Allow motion sensors</div>
+    </div>
+
+    <script src="utils.js"></script>
+    <script src="recorder.js"></script>
+</body>
+</html>
