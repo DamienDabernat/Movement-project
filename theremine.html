@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thérémine Surpuissant</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        night: '#07090f',
+                        carbon: '#10131d',
+                        steel: '#1a1f2d',
+                        accent: '#d4a373',
+                        ivory: '#f7f2eb'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+</head>
+<body class="bg-night text-slate-100 font-sans">
+    <header class="bg-gradient-to-br from-steel via-carbon to-night text-white shadow-inner">
+        <div class="max-w-6xl mx-auto px-4 py-14 flex flex-col gap-10 lg:flex-row lg:items-end">
+            <div class="space-y-6 flex-1">
+                <p class="text-xs tracking-[0.5em] uppercase text-slate-400">Instrument gestuel</p>
+                <div>
+                    <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight">Thérémine Surpuissant</h1>
+                    <p class="mt-4 text-base sm:text-lg text-slate-300 max-w-2xl">
+                        Interface épurée pensée pour la démonstration&nbsp;: blocs équilibrés, canevas flexible et palette sobre
+                        pour rester lisible en vertical comme à l'horizontal.
+                    </p>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                        <p class="text-xs uppercase tracking-widest text-slate-400">Statut</p>
+                        <p id="error" class="mt-2 text-sm text-white"></p>
+                        <p id="safari" class="mt-1 text-xs text-amber-200">Autoriser l'accéléromètre</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
+                        <p class="text-xs uppercase tracking-widest text-slate-400">Mobile first</p>
+                        <p class="mt-2 text-sm text-white">Grille fluide&nbsp;: chaque carte passe en pleine largeur sous 640px.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 rounded-3xl border border-white/5 bg-steel/70 p-6 text-sm leading-relaxed shadow-2xl">
+                <h2 class="text-lg font-semibold text-white">Session en cours</h2>
+                <p class="mt-3 text-slate-300">Choisissez un morceau ou laissez le mode libre, touchez le canevas pour activer le son puis
+                    jouez par inclinaison. Toutes les actions clés restent accessibles en un balayage.</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-12 space-y-10">
+        <section class="grid gap-6 lg:grid-cols-3">
+            <div class="lg:col-span-1 rounded-3xl bg-carbon/80 border border-white/5 p-6 shadow-lg">
+                <div class="space-y-1">
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Configuration</p>
+                    <h2 class="text-2xl font-semibold">Choisissez votre ambiance</h2>
+                </div>
+                <div class="mt-6 space-y-4">
+                    <label class="block text-sm font-semibold text-slate-300" for="songSelect">Sélection de morceau</label>
+                    <div class="relative">
+                        <select id="songSelect" class="w-full appearance-none rounded-2xl border border-white/10 bg-steel/80 px-4 py-3 text-base text-white focus:outline-none focus:ring-2 focus:ring-accent/60">
+                            <option class="bg-carbon" value="Free Mode">Mode libre</option>
+                            <option class="bg-carbon" value="Brother John">Brother John</option>
+                            <option class="bg-carbon" value="Twinkle Twinkle">Twinkle Twinkle</option>
+                            <option class="bg-carbon" value="Happy Birthday">Happy Birthday</option>
+                            <option class="bg-carbon" value="Imperial March">Imperial March</option>
+                        </select>
+                        <span class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">▾</span>
+                    </div>
+                    <button id="autoPlayButton" class="w-full rounded-2xl bg-accent/90 px-4 py-3 text-base font-semibold text-carbon shadow-lg shadow-accent/30 transition hover:bg-accent">Lecture guidée</button>
+                    <p class="text-xs text-slate-400">«&nbsp;Lecture guidée&nbsp;» suit les partitions intégrées pour une démonstration fluide.</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 rounded-3xl border border-white/5 bg-gradient-to-b from-carbon/70 to-night/80 p-6 shadow-2xl">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Interface tactile</p>
+                        <h2 class="text-2xl font-semibold">Roue harmonique</h2>
+                    </div>
+                    <p class="text-sm text-slate-400">Touchez puis inclinez le téléphone pour naviguer entre les notes.</p>
+                </div>
+                <div class="mt-6 rounded-3xl border border-white/10 bg-night/80 p-4">
+                    <div id="canvas-parent" class="relative aspect-square w-full overflow-hidden rounded-2xl bg-[#0b101d]">
+                        <p class="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-center text-sm text-slate-500" aria-hidden="true">Touchez pour activer</p>
+                    </div>
+                </div>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 text-xs text-slate-400">
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p class="font-semibold text-white">Gestuelle</p>
+                        <p class="mt-2">Inclinez gauche/droite pour les notes, vers le haut pour répéter. Re-touchez pour mettre sur pause.</p>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p class="font-semibold text-white">Mise au point</p>
+                        <p class="mt-2">Le canevas adapte son ratio pour rester centré sur mobile ou desktop.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid gap-6 md:grid-cols-2">
+            <article class="rounded-3xl border border-white/5 bg-carbon/80 p-6 shadow-lg">
+                <h3 class="text-lg font-semibold">Comment jouer</h3>
+                <ol class="mt-4 space-y-3 text-sm text-slate-300 list-decimal list-inside">
+                    <li>Sélectionnez une chanson ou laissez «&nbsp;Mode libre&nbsp;».</li>
+                    <li>Touchez la roue pour activer le son et calibrer l'accéléromètre.</li>
+                    <li>Maintenez le téléphone à plat, puis inclinez-le pour changer de note.</li>
+                    <li>Activez «&nbsp;Lecture guidée&nbsp;» pour rejouer les partitions embarquées.</li>
+                    <li>Stoppez la lecture guidée pour reprendre le contrôle manuel.</li>
+                </ol>
+            </article>
+            <article class="rounded-3xl border border-white/5 bg-carbon/80 p-6 shadow-lg">
+                <h3 class="text-lg font-semibold">Réglages rapides</h3>
+                <ul class="mt-4 space-y-3 text-sm text-slate-300 list-disc list-inside">
+                    <li>Utilisez la barre d'état pour vérifier l'accès aux capteurs.</li>
+                    <li>Le bouton «&nbsp;Lecture guidée&nbsp;» devient «&nbsp;Arrêter&nbsp;» pendant la lecture.</li>
+                    <li>Le canevas accepte les interactions tactile ou souris pour déclencher le son.</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+
+    <script src="utils.js"></script>
+    <script src="partitions.js"></script>
+    <script>
+        let osc, fft, env;
+        let isPlaying = false;
+        let freq, amp = 0;
+        let previousAlpha, alpha = 0;
+        let calibrationOffset = null;
+        let accelZ = 0;
+
+        let autoPlay = false;
+        let autoPlayTimeout;
+
+        let majorScale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+        let noteNames = ["Do", "Ré", "Mi", "Fa", "Sol", "La", "Si", "Do'"];
+        let lockOctave = false;
+        let octave = 1;
+        let sequence = [];
+        let rhythm = [];
+        let bpm = 0;
+
+        let currentIndex = 0;
+        let lastNote = null;
+        let currentNote = null;
+        let ampResetRequired = false;
+
+        const canvasParent = () => document.getElementById('canvas-parent');
+
+        requestPermission("safari", "error")
+            .then(() => {
+                window.addEventListener("deviceorientation", drawWithOrientation, false);
+                window.addEventListener("devicemotion", drawWithMotion, false);
+            })
+            .catch(err => {
+                console.error('An error occurred:', err);
+            });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const songSelect = document.getElementById('songSelect');
+
+            songSelect.addEventListener('change', function () {
+                const selectedSong = songSelect.options[songSelect.selectedIndex].value;
+
+                if (selectedSong === "Free Mode") {
+                    sequence = [];
+                } else {
+                    const songDetails = getSongDetails(selectedSong);
+
+                    if (songDetails) {
+                        lastNote = null;
+                        sequence = songDetails.partition;
+                        majorScale = songDetails.notes;
+                        noteNames = songDetails.labels;
+                        rhythm = songDetails.rhythm;
+                        bpm = songDetails.bpm;
+                    }
+                }
+            });
+        });
+
+        const autoPlayButton = document.getElementById('autoPlayButton');
+        autoPlayButton.addEventListener('click', toggleAutoPlay);
+
+        function getCanvasSize() {
+            const parent = canvasParent();
+            const parentWidth = parent ? parent.clientWidth : windowWidth;
+            const size = Math.min(parentWidth, windowHeight * 0.65);
+            return Math.max(280, size);
+        }
+
+        function setup() {
+            const size = getCanvasSize();
+            let cnv = createCanvas(size, size);
+            pixelDensity(1.5);
+            cnv.id('thereminCanvas');
+            cnv.parent('canvas-parent');
+            cnv.mousePressed(toggleOscillator);
+            osc = new p5.Oscillator('sine');
+            fft = new p5.FFT();
+            env = new p5.Env();
+            env.setRange(1, 0);
+        }
+
+        function windowResized() {
+            const size = getCanvasSize();
+            resizeCanvas(size, size);
+        }
+
+        function draw() {
+            background(8, 12, 26);
+
+            let waveform = fft.waveform();
+            noFill();
+            beginShape();
+            strokeWeight(2);
+            stroke(212, 163, 115, 200);
+            for (let i = 0; i < waveform.length; i++) {
+                let x = map(i, 0, waveform.length, 20, width - 20);
+                let y = map(waveform[i], -1, 1, 80, 10);
+                vertex(x, y + 220);
+            }
+            endShape();
+
+            noStroke();
+            fill(226);
+            textSize(18);
+            textAlign(LEFT, CENTER);
+            text('Note suivante :', 24, 32);
+            textStyle(BOLD);
+            textSize(24);
+            text(sequence[currentIndex] || '—', width / 2 - 12, 32);
+            textStyle(NORMAL);
+
+            let circleDiameter = width * 0.85;
+            drawSemicircle(noteNames, circleDiameter, alpha - 90, 0, 30);
+
+            stroke(212, 163, 115, 180);
+            strokeWeight(5);
+            line(width / 2, height / 2 + 60, width / 2, height / 2 - 100);
+            noStroke();
+
+            fill(148);
+            textAlign(CENTER, CENTER);
+            textSize(16);
+            text((isPlaying || autoPlay) ? '' : 'Appuyez pour démarrer', width / 2, height - 32);
+        }
+
+        function toggleAutoPlay() {
+            autoPlay = !autoPlay;
+
+            if (autoPlay) {
+                autoPlayButton.innerHTML = "Arrêter";
+            } else {
+                currentIndex = 0;
+                autoPlayButton.innerHTML = "Lecture guidée";
+            }
+
+            async function playNote() {
+                if (sequence.length > 0) {
+                    const trueRhythm = bpmToMilliseconds(bpm) * rhythm[currentIndex];
+                    freq = majorScale[noteNames.indexOf(sequence[currentIndex])];
+                    env.setADSR(0.05, 0.2, 1.5, 0.2);
+                    osc.freq(freq, 0.1);
+                    env.play(osc);
+
+                    autoPlayTimeout = setTimeout(playNote, trueRhythm);
+                    currentIndex = (currentIndex + 1) % sequence.length;
+                }
+            }
+
+            if (autoPlay) {
+                osc.start();
+                playNote();
+            } else {
+                osc.stop();
+                clearTimeout(autoPlayTimeout);
+            }
+        }
+
+        function drawWithOrientation(event) {
+            if (calibrationOffset === null) {
+                calibrationOffset = event.alpha;
+            }
+
+            alpha = event.alpha - calibrationOffset + 90;
+            alpha = alpha % 360;
+            if (alpha < 0) {
+                alpha += 360;
+            }
+
+            if (!autoPlay) {
+                if (alpha <= 360 && alpha > 275) {
+                    lockOctave = false;
+                    freq = majorScale[majorScale.length - 1];
+                }
+                else if (alpha <= 275 && alpha >= 265 && !lockOctave) {
+                    if (previousAlpha >= alpha) {
+                        octave = octave * 2;
+                    } else if (previousAlpha < alpha) {
+                        octave = octave / 2;
+                    }
+                    lockOctave = true;
+                }
+                else if (alpha < 265 && alpha > 180) {
+                    lockOctave = false;
+                    freq = majorScale[0];
+                }
+                else {
+                    const degreePerNote = 180 / majorScale.length;
+                    let noteIndex = Math.floor((180 - alpha) / degreePerNote);
+                    noteIndex = constrain(noteIndex, 0, majorScale.length - 1);
+                    freq = majorScale[noteIndex];
+                }
+            }
+            previousAlpha = alpha;
+
+            let noteIndex = majorScale.indexOf(freq);
+            currentNote = noteNames[noteIndex];
+
+            if (isPlaying) {
+                if (sequence.length === 0 && currentNote !== lastNote) {
+                    osc.freq(freq * octave, 0.15);
+                    env.play(osc);
+                    lastNote = currentNote;
+                } else if (currentNote === sequence[currentIndex]) {
+                    if (currentNote === lastNote && amp !== 0) {
+                        ampResetRequired = true;
+                    }
+
+                    if (!ampResetRequired) {
+                        osc.freq(freq, 0.15);
+                        currentIndex = (currentIndex + 1) % sequence.length;
+                        lastNote = currentNote;
+                    } else if (amp === 0) {
+                        ampResetRequired = false;
+                    }
+                } else if (sequence.length !== 0) {
+                    osc.amp(amp, 0.1);
+                }
+            }
+        }
+
+        function drawWithMotion(event) {
+            const accel = event.accelerationIncludingGravity;
+            const factor = is_iOS() ? -1 : 1;
+
+            accelZ = (-accel.z * factor).toFixed(2);
+            accelZ = map(-accel.z * factor, -10, 0, 0, 1);
+
+            if (accelZ > 0.4) {
+                accelZ = 0;
+            } else {
+                accelZ = 1;
+            }
+            amp = parseFloat(constrain(accelZ, 0, 1).toFixed(2));
+        }
+
+        function toggleOscillator() {
+            if (isPlaying) {
+                osc.stop();
+                isPlaying = false;
+            } else {
+                osc.start();
+                isPlaying = true;
+            }
+        }
+
+        function drawSemicircle(labelList, diameter, rotationAngle, posX = 0, posY = 0) {
+            let num_sections = labelList.length;
+            let theta = PI / num_sections;
+            let colors = Array.from({length: num_sections}, (_, i) => lerpColor(color(212, 163, 115, 220), color(247, 242, 235, 180), i / (num_sections - 1)));
+
+            push();
+            translate(width / 2 + posX, width / 2 + posY);
+            rotate(radians(rotationAngle));
+
+            stroke(130, 138, 155, 120);
+            strokeWeight(3);
+            for (let i = 0; i < num_sections; i++) {
+                fill(colors[i]);
+                arc(0, 0, diameter, diameter, PI + i * theta, PI + (i + 1) * theta, PIE);
+            }
+            noStroke();
+
+            textSize(20);
+            fill(244);
+            let radial_distance = diameter * 0.3;
+
+            for (let i = 0; i < num_sections; i++) {
+                let angle = PI + i * theta + theta / 2;
+                let x = cos(angle) * radial_distance;
+                let y = sin(angle) * radial_distance;
+                textAlign(CENTER, CENTER);
+                text(labelList[i], x, y);
+            }
+
+            pop();
+        }
+    </script>
+</body>
+</html>
