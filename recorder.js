@@ -22,50 +22,6 @@ const sampleCountElement = document.getElementById('sampleCount');
 const segmentInfoElement = document.getElementById('segmentInfo');
 const elapsedTimeElement = document.getElementById('elapsedTime');
 
-// ----- State -----
-
-let recorder = new MotionRecorder();
-let selectedMode = Mode.both;
-let elapsedRafId = null;
-
-// ----- Initialization -----
-
-updateSegmentInfoUI();
-resetElapsedTimer();
-setIdleUIState(false);
-
-if (!window.DeviceMotionEvent) {
-    statusElement.textContent = 'Device motion API not supported on this device.';
-    errorElement.textContent = 'Device motion API not supported';
-    disableControls();
-} else {
-    statusElement.textContent = isIOS()
-        ? 'Tap "Allow motion sensors" to begin.'
-        : 'Requesting motion permissions…';
-
-    requestMotionPermission(safariButton, errorElement)
-        .then(() => {
-            window.addEventListener('devicemotion', globalDeviceMotionHandler, false);
-            statusElement.textContent =
-                'Ready. Enter a label, set segment duration, and press Start recording.';
-            startButton.disabled = false;
-        })
-        .catch((err) => {
-            errorElement.textContent = err.message || 'Permission was not granted.';
-            disableControls();
-        });
-}
-
-// ----- Event listeners -----
-
-modeSelect.addEventListener('change', () => {
-    selectedMode = mapModeValue(modeSelect.value);
-});
-
-startButton.addEventListener('click', startRecording);
-stopButton.addEventListener('click', stopRecording);
-downloadButton.addEventListener('click', downloadZip);
-
 // ----- Motion recorder class -----
 
 class MotionRecorder {
@@ -172,6 +128,51 @@ class MotionRecorder {
         return (performance.now() - this.startTimestamp) / 1000;
     }
 }
+
+// ----- State -----
+let recorder = new MotionRecorder();
+let selectedMode = Mode.both;
+let elapsedRafId = null;
+
+// ----- Initialization -----
+
+updateSegmentInfoUI();
+resetElapsedTimer();
+setIdleUIState(false);
+
+if (!window.DeviceMotionEvent) {
+    statusElement.textContent = 'Device motion API not supported on this device.';
+    errorElement.textContent = 'Device motion API not supported';
+    disableControls();
+} else {
+    statusElement.textContent = isIOS()
+        ? 'Tap "Allow motion sensors" to begin.'
+        : 'Requesting motion permissions…';
+
+    requestMotionPermission(safariButton, errorElement)
+        .then(() => {
+            window.addEventListener('devicemotion', globalDeviceMotionHandler, false);
+            statusElement.textContent =
+                'Ready. Enter a label, set segment duration, and press Start recording.';
+            startButton.disabled = false;
+        })
+        .catch((err) => {
+            errorElement.textContent = err.message || 'Permission was not granted.';
+            disableControls();
+        });
+}
+
+// ----- Event listeners -----
+
+modeSelect.addEventListener('change', () => {
+    selectedMode = mapModeValue(modeSelect.value);
+});
+
+startButton.addEventListener('click', startRecording);
+stopButton.addEventListener('click', stopRecording);
+downloadButton.addEventListener('click', downloadZip);
+
+// ----- Motion recorder class -----
 
 // ----- UI state helpers -----
 
