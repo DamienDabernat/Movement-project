@@ -1,13 +1,12 @@
-let isRecording = false;
-let selectedMode = Mode.both;
-let samples = [];
-let startTimestamp = null;
-let targetDuration = null;
-let lastRecordedLabel = '';
-let segments = [];
-let currentSegment = [];
-let segmentDurationSeconds = 5;
-let nextSegmentThreshold = 0;
+// ----- Modes -----
+
+const Mode = Object.freeze({
+    accelerometer: 'accelerometer',
+    gyroscope: 'gyroscope',
+    both: 'both',
+});
+
+// ----- DOM references -----
 
 const labelInput = document.getElementById('activityLabel');
 const modeSelect = document.getElementById('modeSelect');
@@ -21,19 +20,34 @@ const errorElement = document.getElementById('recorderError');
 const safariButton = document.getElementById('safariRecorder');
 const sampleCountElement = document.getElementById('sampleCount');
 const segmentInfoElement = document.getElementById('segmentInfo');
+const elapsedTimeElement = document.getElementById('elapsedTime');
 
-updateSegmentInfo();
+// ----- State -----
+
+let recorder = new MotionRecorder();
+let selectedMode = Mode.both;
+let elapsedRafId = null;
+
+// ----- Initialization -----
+
+updateSegmentInfoUI();
+resetElapsedTimer();
+setIdleUIState(false);
 
 if (!window.DeviceMotionEvent) {
     statusElement.textContent = 'Device motion API not supported on this device.';
     errorElement.textContent = 'Device motion API not supported';
     disableControls();
 } else {
-    statusElement.textContent = is_iOS() ? 'Tap "Allow motion sensors" to begin.' : 'Requesting motion permissions…';
-    requestPermission('safariRecorder', 'recorderError')
+    statusElement.textContent = isIOS()
+        ? 'Tap "Allow motion sensors" to begin.'
+        : 'Requesting motion permissions…';
+
+    requestMotionPermission(safariButton, errorElement)
         .then(() => {
-            window.addEventListener('devicemotion', handleDeviceMotion, false);
-            statusElement.textContent = 'Ready. Enter a label, set segment duration, and press Start recording.';
+            window.addEventListener('devicemotion', globalDeviceMotionHandler, false);
+            statusElement.textContent =
+                'Ready. Enter a label, set segment duration, and press Start recording.';
             startButton.disabled = false;
         })
         .catch((err) => {
@@ -42,6 +56,8 @@ if (!window.DeviceMotionEvent) {
         });
 }
 
+// ----- Event listeners -----
+
 modeSelect.addEventListener('change', () => {
     selectedMode = mapModeValue(modeSelect.value);
 });
@@ -49,6 +65,137 @@ modeSelect.addEventListener('change', () => {
 startButton.addEventListener('click', startRecording);
 stopButton.addEventListener('click', stopRecording);
 downloadButton.addEventListener('click', downloadZip);
+
+// ----- Motion recorder class -----
+
+class MotionRecorder {
+    constructor() {
+        this.reset();
+    }
+
+    reset() {
+        this.isRecording = false;
+        this.selectedMode = Mode.both;
+        this.samples = [];
+        this.segments = [];
+        this.currentSegment = [];
+        this.startTimestamp = null; // in performance.now() units
+        this.segmentDurationSeconds = 5;
+        this.nextSegmentThreshold = 0;
+        this.targetDuration = null;
+        this.lastRecordedLabel = '';
+        this.sessionId = null;
+    }
+
+    start(label, mode, segmentDurationSeconds, targetDurationSeconds) {
+        this.reset();
+        this.isRecording = true;
+        this.selectedMode = mode;
+        this.segmentDurationSeconds = segmentDurationSeconds;
+        this.targetDuration =
+            typeof targetDurationSeconds === 'number' && targetDurationSeconds > 0
+                ? targetDurationSeconds
+                : null;
+        this.lastRecordedLabel = label;
+        this.startTimestamp = performance.now();
+        this.nextSegmentThreshold = this.segmentDurationSeconds;
+        this.sessionId = generateSessionId();
+    }
+
+    stop() {
+        if (!this.isRecording) {
+            return;
+        }
+        this.finalizeSegments();
+        this.isRecording = false;
+    }
+
+    handleDeviceMotion(event) {
+        if (!this.isRecording || !this.startTimestamp) {
+            return null;
+        }
+
+        const now = performance.now();
+        const elapsedSeconds = (now - this.startTimestamp) / 1000;
+
+        const accelSource = event.accelerationIncludingGravity || event.acceleration || {};
+        const rotationSource = event.rotationRate || {};
+
+        const shouldRecordAccel =
+            this.selectedMode === Mode.accelerometer || this.selectedMode === Mode.both;
+        const shouldRecordGyro =
+            this.selectedMode === Mode.gyroscope || this.selectedMode === Mode.both;
+
+        const sample = {
+            timestamp: elapsedSeconds,
+            accelX: shouldRecordAccel ? sanitizeNumber(accelSource.x) : null,
+            accelY: shouldRecordAccel ? sanitizeNumber(accelSource.y) : null,
+            accelZ: shouldRecordAccel ? sanitizeNumber(accelSource.z) : null,
+            gyroAlpha: shouldRecordGyro ? sanitizeNumber(rotationSource.alpha) : null,
+            gyroBeta: shouldRecordGyro ? sanitizeNumber(rotationSource.beta) : null,
+            gyroGamma: shouldRecordGyro ? sanitizeNumber(rotationSource.gamma) : null,
+        };
+
+        this.samples.push(sample);
+        this.currentSegment.push(sample);
+
+        if (this.segmentDurationSeconds && elapsedSeconds >= this.nextSegmentThreshold) {
+            this.closeCurrentSegment(true);
+        }
+
+        if (this.targetDuration && elapsedSeconds >= this.targetDuration) {
+            this.stop();
+        }
+
+        return sample;
+    }
+
+    closeCurrentSegment(incrementThreshold) {
+        if (this.currentSegment.length > 0) {
+            this.segments.push(this.currentSegment);
+            this.currentSegment = [];
+        }
+
+        if (incrementThreshold) {
+            this.nextSegmentThreshold += this.segmentDurationSeconds;
+        }
+    }
+
+    finalizeSegments() {
+        this.closeCurrentSegment(false);
+    }
+
+    getElapsedSeconds() {
+        if (!this.isRecording || !this.startTimestamp) {
+            return 0;
+        }
+        return (performance.now() - this.startTimestamp) / 1000;
+    }
+}
+
+// ----- UI state helpers -----
+
+function setRecordingUIState() {
+    startButton.disabled = true;
+    stopButton.disabled = false;
+    downloadButton.disabled = true;
+
+    labelInput.disabled = true;
+    modeSelect.disabled = true;
+    durationInput.disabled = true;
+    segmentDurationInput.disabled = true;
+}
+
+function setIdleUIState(hasSegments) {
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    downloadButton.disabled = !hasSegments;
+
+    labelInput.disabled = false;
+    modeSelect.disabled = false;
+    durationInput.disabled = false;
+    segmentDurationInput.disabled = false;
+}
 
 function disableControls() {
     startButton.disabled = true;
@@ -61,21 +208,11 @@ function disableControls() {
     safariButton.style.display = 'none';
 }
 
-function mapModeValue(value) {
-    switch (value) {
-        case 'accelerometer':
-            return Mode.accelerometer;
-        case 'gyroscope':
-            return Mode.gyroscope;
-        case 'both':
-        default:
-            return Mode.both;
-    }
-}
+// ----- Main UI actions -----
 
 function startRecording() {
     if (!window.DeviceMotionEvent) {
-        errorElement.textContent = 'Device motion API not supported';
+        errorElement.textContent = 'Device motion API not supported.';
         return;
     }
 
@@ -91,117 +228,78 @@ function startRecording() {
         return;
     }
 
+    const durationValue = parseFloat(durationInput.value);
+    const targetDuration = !Number.isNaN(durationValue) && durationValue > 0 ? durationValue : null;
+
     errorElement.textContent = '';
+
     selectedMode = mapModeValue(modeSelect.value);
-    segmentDurationSeconds = segmentValue;
-    samples = [];
-    segments = [];
-    currentSegment = [];
-    lastRecordedLabel = label;
-    startTimestamp = Date.now();
-    nextSegmentThreshold = segmentDurationSeconds;
 
-    targetDuration = parseFloat(durationInput.value);
-    if (Number.isNaN(targetDuration) || targetDuration <= 0) {
-        targetDuration = null;
-    }
+    recorder.start(label, selectedMode, segmentValue, targetDuration);
 
-    isRecording = true;
     sampleCountElement.textContent = 'Samples: 0';
-    updateSegmentInfo();
+    updateSegmentInfoUI();
     statusElement.textContent = 'Recording… Segment 1 in progress.';
 
-    startButton.disabled = true;
-    stopButton.disabled = false;
-    downloadButton.disabled = true;
-    labelInput.disabled = true;
-    modeSelect.disabled = true;
-    durationInput.disabled = true;
-    segmentDurationInput.disabled = true;
+    setRecordingUIState();
+    startElapsedTimer();
 }
 
 function stopRecording() {
-    if (!isRecording) {
+    if (!recorder.isRecording) {
         return;
     }
 
-    finalizeRecordingSegments();
+    recorder.stop();
 
-    isRecording = false;
-    startButton.disabled = false;
-    stopButton.disabled = true;
-    labelInput.disabled = false;
-    modeSelect.disabled = false;
-    durationInput.disabled = false;
-    segmentDurationInput.disabled = false;
-    downloadButton.disabled = segments.length === 0;
+    setIdleUIState(recorder.segments.length > 0);
+    updateSegmentInfoUI();
+    resetElapsedTimer();
 
+    const samples = recorder.samples;
     const seconds = samples.length > 0 ? samples[samples.length - 1].timestamp : 0;
     const sampleRate = estimateSampleRate(samples);
-    const sampleRateText = sampleRate > 0 ? ` Estimated sample rate: ${sampleRate.toFixed(2)} Hz.` : '';
-    statusElement.textContent = `Recording stopped. ${samples.length} samples recorded in ${seconds.toFixed(2)} s.${sampleRateText} Segments ready: ${segments.length}.`;
-    updateSegmentInfo();
+    const sampleRateText =
+        sampleRate > 0 ? ` Estimated sample rate: ${sampleRate.toFixed(2)} Hz.` : '';
+    statusElement.textContent = `Recording stopped. ${samples.length} samples recorded in ${seconds.toFixed(
+        2,
+    )} s.${sampleRateText} Segments ready: ${recorder.segments.length}.`;
 }
 
-function handleDeviceMotion(event) {
-    if (!isRecording) {
+// ----- Global motion handler -----
+
+function globalDeviceMotionHandler(event) {
+    const sample = recorder.handleDeviceMotion(event);
+    if (!sample) {
         return;
     }
 
-    if (!startTimestamp) {
-        startTimestamp = Date.now();
-    }
+    sampleCountElement.textContent = `Samples: ${recorder.samples.length}`;
+    updateSegmentInfoUI();
 
-    const elapsedSeconds = (Date.now() - startTimestamp) / 1000;
-    const accelSource = event.accelerationIncludingGravity || event.acceleration || {};
-    const rotationSource = event.rotationRate || {};
+    if (!recorder.isRecording) {
+        // Auto-stop triggered by target duration
+        setIdleUIState(recorder.segments.length > 0);
+        resetElapsedTimer();
 
-    const shouldRecordAccel = selectedMode === Mode.accelerometer || selectedMode === Mode.both;
-    const shouldRecordGyro = selectedMode === Mode.gyroscope || selectedMode === Mode.both;
-
-    const sample = {
-        timestamp: elapsedSeconds,
-        accelX: shouldRecordAccel ? sanitizeNumber(accelSource.x) : null,
-        accelY: shouldRecordAccel ? sanitizeNumber(accelSource.y) : null,
-        accelZ: shouldRecordAccel ? sanitizeNumber(accelSource.z) : null,
-        gyroAlpha: shouldRecordGyro ? sanitizeNumber(rotationSource.alpha) : null,
-        gyroBeta: shouldRecordGyro ? sanitizeNumber(rotationSource.beta) : null,
-        gyroGamma: shouldRecordGyro ? sanitizeNumber(rotationSource.gamma) : null,
-    };
-
-    samples.push(sample);
-    currentSegment.push(sample);
-    sampleCountElement.textContent = `Samples: ${samples.length}`;
-
-    if (segmentDurationSeconds && elapsedSeconds >= nextSegmentThreshold) {
-        closeCurrentSegment(true);
-    }
-
-    if (targetDuration && elapsedSeconds >= targetDuration) {
-        stopRecording();
+        const samples = recorder.samples;
+        const seconds = samples.length > 0 ? samples[samples.length - 1].timestamp : 0;
+        const sampleRate = estimateSampleRate(samples);
+        const sampleRateText =
+            sampleRate > 0 ? ` Estimated sample rate: ${sampleRate.toFixed(2)} Hz.` : '';
+        statusElement.textContent = `Recording stopped (auto). ${
+            samples.length
+        } samples recorded in ${seconds.toFixed(2)} s.${sampleRateText} Segments ready: ${
+            recorder.segments.length
+        }.`;
     }
 }
 
-function closeCurrentSegment(incrementThreshold) {
-    if (currentSegment.length > 0) {
-        segments.push(currentSegment);
-        currentSegment = [];
-    }
+// ----- UI info helpers -----
 
-    if (incrementThreshold) {
-        nextSegmentThreshold += segmentDurationSeconds;
-    }
-
-    updateSegmentInfo();
-}
-
-function finalizeRecordingSegments() {
-    closeCurrentSegment(false);
-}
-
-function updateSegmentInfo() {
-    const completed = segments.length;
-    if (isRecording) {
+function updateSegmentInfoUI() {
+    const completed = recorder.segments.length;
+    if (recorder.isRecording) {
         const currentIndex = completed + 1;
         segmentInfoElement.textContent = `Current segment: ${currentIndex} | Segments completed: ${completed}`;
     } else {
@@ -209,12 +307,34 @@ function updateSegmentInfo() {
     }
 }
 
-function sanitizeNumber(value) {
-    if (typeof value === 'number' && !Number.isNaN(value)) {
-        return value;
+function startElapsedTimer() {
+    if (elapsedRafId !== null) {
+        cancelAnimationFrame(elapsedRafId);
+        elapsedRafId = null;
     }
-    return null;
+
+    const update = () => {
+        const seconds = recorder.getElapsedSeconds();
+        elapsedTimeElement.textContent = `Elapsed: ${seconds.toFixed(2)} s`;
+        if (recorder.isRecording) {
+            elapsedRafId = requestAnimationFrame(update);
+        } else {
+            elapsedRafId = null;
+        }
+    };
+
+    update();
 }
+
+function resetElapsedTimer() {
+    if (elapsedRafId !== null) {
+        cancelAnimationFrame(elapsedRafId);
+        elapsedRafId = null;
+    }
+    elapsedTimeElement.textContent = 'Elapsed: 0.00 s';
+}
+
+// ----- CSV / ZIP building -----
 
 function buildCsvContent(label, data) {
     const header = 'label,timestamp,accelX,accelY,accelZ,gyroAlpha,gyroBeta,gyroGamma';
@@ -273,13 +393,27 @@ function estimateSampleRate(recordedSamples) {
     return 1 / avgDelta;
 }
 
+function buildMetaJson(label) {
+    const sampleRate = estimateSampleRate(recorder.samples);
+    return {
+        label,
+        mode: modeSelect.value,
+        sampleRateHz: sampleRate,
+        totalSamples: recorder.samples.length,
+        segmentsCount: recorder.segments.length,
+        createdAt: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        sessionId: recorder.sessionId,
+    };
+}
+
 function downloadZip() {
-    if (segments.length === 0) {
+    if (recorder.segments.length === 0) {
         errorElement.textContent = 'No segments to export yet.';
         return;
     }
 
-    const label = lastRecordedLabel || labelInput.value.trim();
+    const label = recorder.lastRecordedLabel || labelInput.value.trim();
     if (!label) {
         errorElement.textContent = 'Missing label for export.';
         return;
@@ -295,14 +429,24 @@ function downloadZip() {
     const folderName = sanitizeFolderName(label) || 'activity';
     const folder = zip.folder(folderName);
 
-    segments.forEach((segmentData, index) => {
+    recorder.segments.forEach((segmentData, index) => {
         const csvContent = buildCsvContent(label, segmentData);
         const fileIndex = String(index + 1).padStart(2, '0');
-        folder.file(`${folderName}_${fileIndex}.csv`, csvContent);
+        const segmentDuration =
+            segmentData.length > 1
+                ? segmentData[segmentData.length - 1].timestamp - segmentData[0].timestamp
+                : 0;
+        const safeDuration = segmentDuration.toFixed(2);
+        // Unique sample filenames thanks to sessionId
+        const fileName = `${folderName}_${recorder.sessionId}_${fileIndex}_${safeDuration}s.csv`;
+        folder.file(fileName, csvContent);
     });
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const archiveName = `${folderName}_segments_${timestamp}.zip`;
+    const meta = buildMetaJson(label);
+    const metaFileName = `${folderName}_${recorder.sessionId}_meta.json`;
+    zip.file(metaFileName, JSON.stringify(meta, null, 2));
+
+    const archiveName = `${folderName}_segments_${recorder.sessionId}.zip`;
 
     zip.generateAsync({ type: 'blob' })
         .then((content) => {
@@ -314,14 +458,105 @@ function downloadZip() {
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            statusElement.textContent = `ZIP ready with ${segments.length} segment(s).`;
+            statusElement.textContent = `ZIP ready with ${recorder.segments.length} segment(s).`;
         })
         .catch((err) => {
             errorElement.textContent = 'Failed to generate ZIP.';
+            // eslint-disable-next-line no-console
             console.error(err);
         });
 }
 
+// ----- Helpers -----
+
+function sanitizeNumber(value) {
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+        return value;
+    }
+    return null;
+}
+
 function sanitizeFolderName(name) {
     return name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function mapModeValue(value) {
+    switch (value) {
+        case 'accelerometer':
+            return Mode.accelerometer;
+        case 'gyroscope':
+            return Mode.gyroscope;
+        case 'both':
+        default:
+            return Mode.both;
+    }
+}
+
+function isIOS() {
+    return (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+}
+
+function requestMotionPermission(safariButtonElement, errorElementElement) {
+    return new Promise((resolve, reject) => {
+        if (typeof DeviceMotionEvent === 'undefined') {
+            reject(new Error('Device motion API not supported.'));
+            return;
+        }
+
+        // Non-iOS or iOS without requestPermission: nothing special to do.
+        if (typeof DeviceMotionEvent.requestPermission !== 'function') {
+            safariButtonElement.style.display = 'none';
+            resolve();
+            return;
+        }
+
+        // iOS path: need a user gesture.
+        safariButtonElement.style.display = 'inline-block';
+
+        const handleSuccess = () => {
+            safariButtonElement.style.display = 'none';
+            resolve();
+        };
+
+        const handleError = (err) => {
+            safariButtonElement.style.display = 'inline-block';
+            errorElementElement.textContent =
+                (err && err.message) || 'Motion permission was not granted.';
+            reject(err instanceof Error ? err : new Error(errorElementElement.textContent));
+        };
+
+        const clickHandler = () => {
+            DeviceMotionEvent.requestPermission()
+                .then((state) => {
+                    if (state === 'granted') {
+                        handleSuccess();
+                    } else {
+                        handleError(new Error(`Permission state: ${state}`));
+                    }
+                })
+                .catch(handleError);
+        };
+
+        const keyHandler = (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                clickHandler();
+            }
+        };
+
+        safariButtonElement.addEventListener('click', clickHandler, { once: true });
+        safariButtonElement.addEventListener('keydown', keyHandler, { once: true });
+    });
+}
+
+function generateSessionId() {
+    const now = new Date();
+    const iso = now.toISOString().replace(/[-:.TZ]/g, '');
+    const random = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, '0');
+    return `${iso}_${random}`;
 }

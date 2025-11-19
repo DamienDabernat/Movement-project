@@ -68,22 +68,24 @@ function getSongDetails(songName) {
     const happyBirthdayBpm = 160;
 
     const imperialMarch = [
-        "La", "La", "La",
-        "Fa", "Do", "La",
-        "Fa", "Do", "La",
         "Mi", "Mi", "Mi",
-        "Fa", "Do", "La#",
-        "Fa", "Do", "La#",
+        "Do", "Sol#", "Fa",
+        "Do", "Sol#", "Fa",
+        "Si", "Si", "Si",
+        "Sol", "Ré#", "Do",
+        "Sol", "Fa", "Fa",
     ];
 
     const imperialMarchRhythm = [
-        1, 1, 1,
-        1, 0.5, 1,
-        1, 0.5, 1,
-        1, 1, 1,
-        1, 0.5, 1,
-        1, 0.5, 1,
+        2, 2, 2,
+        1.5, 0.5, 2,
+        1.5, 0.5, 4,
+        2, 2, 2,
+        1.5, 0.5, 2,
+        1.5, 0.5, 4,
     ];
+
+    const imperialMarchBpm = 112;
 
     if (songName === "Brother John") {
         notes = majorScale;
@@ -108,6 +110,7 @@ function getSongDetails(songName) {
         labels = fullNoteNames;
         partition = imperialMarch;
         rhythm = imperialMarchRhythm
+        bpm = imperialMarchBpm;
     } else {
         return null;
     }

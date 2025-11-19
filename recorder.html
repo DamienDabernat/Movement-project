@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <title>Motion Recorder</title>
     <link rel="stylesheet" href="style.css" />
     <style>
@@ -26,7 +29,9 @@
             font-weight: bold;
         }
 
-        input, select, button {
+        input,
+        select,
+        button {
             padding: 8px;
             font-size: 1rem;
         }
@@ -56,6 +61,11 @@
             padding: 8px 12px;
             cursor: pointer;
             text-align: center;
+            user-select: none;
+        }
+
+        #elapsedTime {
+            font-family: monospace;
         }
     </style>
 </head>
@@ -64,12 +74,17 @@
         <h1>Motion Recorder</h1>
         <p><a href="index.html">← Back to Bouge !</a></p>
 
-        <div id="recorderStatus">Initializing…</div>
-        <div id="recorderError"></div>
+        <div id="recorderStatus" aria-live="polite">Initializing…</div>
+        <div id="recorderError" aria-live="polite" role="alert"></div>
 
         <label>
             Activity label
-            <input type="text" id="activityLabel" placeholder="e.g. walking" />
+            <input
+                type="text"
+                id="activityLabel"
+                placeholder="e.g. walking"
+                required
+            />
         </label>
 
         <label>
@@ -83,28 +98,53 @@
 
         <label>
             Duration (seconds, optional)
-            <input type="number" id="durationInput" min="1" step="1" placeholder="Leave empty for manual stop" />
+            <input
+                type="number"
+                id="durationInput"
+                min="1"
+                step="1"
+                placeholder="Leave empty for manual stop"
+            />
         </label>
 
         <label>
             Segment duration (seconds)
-            <input type="number" id="segmentDurationInput" min="1" step="1" value="5" />
+            <input
+                type="number"
+                id="segmentDurationInput"
+                min="1"
+                step="1"
+                value="5"
+            />
         </label>
 
         <div id="sampleCount">Samples: 0</div>
-        <div id="segmentInfo">Current segment: 0 | Segments completed: 0</div>
+        <div id="segmentInfo">Segments completed: 0</div>
+        <div id="elapsedTime">Elapsed: 0.00 s</div>
 
         <div id="controls">
-            <button id="startRecording" disabled>Start recording</button>
-            <button id="stopRecording" disabled>Stop recording</button>
-            <button id="downloadZip" disabled>Download ZIP</button>
+            <button id="startRecording" type="button" disabled>
+                Start recording
+            </button>
+            <button id="stopRecording" type="button" disabled>
+                Stop recording
+            </button>
+            <button id="downloadZip" type="button" disabled>
+                Download ZIP
+            </button>
         </div>
 
-        <div id="safariRecorder">Allow motion sensors</div>
+        <div
+            id="safariRecorder"
+            role="button"
+            tabindex="0"
+            aria-label="Allow motion sensors"
+        >
+            Allow motion sensors
+        </div>
     </div>
 
     <script src="dist/jszip.min.js"></script>
-    <script src="utils.js"></script>
     <script src="recorder.js"></script>
 </body>
 </html>
